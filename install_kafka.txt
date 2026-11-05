@@ -94,3 +94,36 @@ sudo -u kafka env JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 LOG_DIR=/var/log/
   --config /opt/kafka/config/server.properties
 sudo -u kafka env JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 LOG_DIR=/var/log/kafka /opt/kafka/bin/kafka-storage.sh info \
   --config /opt/kafka/config/server.properties
+
+
+4.7 Servizio systemd
+tee /etc/systemd/system/kafka.service >/dev/null <<'EOF'
+[Unit]
+Description=Apache Kafka Standalone KRaft
+Documentation=https://kafka.apache.org/documentation/
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=kafka
+Group=kafka
+Environment="JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64"
+Environment="KAFKA_HEAP_OPTS=-Xms1g -Xmx1g"
+Environment="KAFKA_LOG4J_OPTS=-Dlog4j2.configurationFile=/opt/kafka/config/log4j2.yaml"
+Environment="LOG_DIR=/var/log/kafka"
+ExecStart=/opt/kafka/bin/kafka-server-start.sh /opt/kafka/config/server.properties
+KillSignal=SIGTERM
+KillMode=control-group
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=180
+LimitNOFILE=100000
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable --now kafka
