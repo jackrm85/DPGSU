@@ -1,0 +1,22 @@
+cd /tmp
+DOWNLOAD_DIR=$(mktemp -d /tmp/kafka-install.XXXXXX)
+cd "$DOWNLOAD_DIR"
+KAFKA_VERSION=4.3.1
+SCALA_VERSION=2.13
+BASE="kafka_${SCALA_VERSION}-${KAFKA_VERSION}"
+curl -fLO "https://downloads.apache.org/kafka/${KAFKA_VERSION}/${BASE}.tgz"
+curl -fLO "https://downloads.apache.org/kafka/${KAFKA_VERSION}/${BASE}.tgz.sha512"
+sha512sum "${BASE}.tgz"
+cat "${BASE}.tgz.sha512"
+# Confrontare l'hash calcolato con quello pubblicato prima di proseguire.
+# Eseguire solo dopo corrispondenza SHA-512 confermata; il controllo non sovrascrive nulla.
+if [ -e /opt/kafka ] || [ -L /opt/kafka ] || [ -e "/opt/${BASE}" ] || [ -L "/opt/${BASE}" ]; then
+  echo "STOP: installazione o collegamento Kafka già presente; applicare il piano di ag-giornamento."
+else
+  tar -xzf "${BASE}.tgz" -C /opt && ln -sT "/opt/${BASE}" /opt/kafka
+fi
+# Proseguire soltanto se estrazione e creazione del collegamento sono riuscite.
+chown -R root:kafka "/opt/${BASE}"
+find "/opt/${BASE}" -type d -exec chmod 0750 {} \;
+find "/opt/${BASE}" -type f -exec chmod 0640 {} \;
+chmod 0750 /opt/${BASE}/bin/*.sh
